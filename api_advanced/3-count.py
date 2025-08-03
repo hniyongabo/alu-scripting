@@ -1,36 +1,51 @@
 #!/usr/bin/python3
-"""fetches the title of all hot posts for a given subreddit recursively"""
+"""Module for count_words function"""
 
+import json
 import requests
 
 
-def count_words(subreddit, word_list=[], hot_list=[], after=""):
-    """Main function"""
-    URL = "https://www.reddit.com/r/{}/hot.json".format(subreddit)
+def count_words(subreddit, word_list, after='', hot_list=[]):
+    """Function that queries the Reddit API."""
+    if after == '':
+        hot_list = [0] * len(word_list)
+    url = "https://www.reddit.com/r/{}/hot.json" \
+        .format(subreddit)
+    request = requests.get(url, params={'after': after},
+                           allow_redirects=False,
+                           headers={'User-Agent': 'My User Agent 1.0'})
+    if request.status_code == 200:
+        data = request.json()
 
-    HEADERS = {"User-Agent": "PostmanRuntime/7.35.0"}
-    PARAMS = {"after": after, "limit": 100}
-    try:
-        RESPONSE = requests.get(URL, headers=HEADERS, params=PARAMS,
-                                allow_redirects=False)
-        after = RESPONSE.json().get("data").get("after")
-        HOT_POSTS = RESPONSE.json().get("data").get("children")
-        [hot_list.append(post.get('data').get('title')) for post in HOT_POSTS]
-        if after is not None:
-            return count_words(subreddit, word_list, hot_list, after)
+        for topic in (data['data']['children']):
+            for word in topic['data']['title'].split():
+                for i in range(len(word_list)):
+                    if word_list[i].lower() == word.lower():
+                        hot_list[i] += 1
 
-        new_dict = {}
-        word_list = set([wrd.lower() for wrd in word_list])
-        for title in hot_list:
-            for word in title.split():
-                if word.lower() in new_dict:
-                    new_dict[word.lower()] += 1
-                else:
-                    new_dict.update({word.lower(): 1})
+        after = data['data']['after']
+        if after is None:
+            save = []
+            for i in range(len(word_list)):
+                for j in range(i + 1, len(word_list)):
+                    if word_list[i].lower() == word_list[j].lower():
+                        save.append(j)
+                        hot_list[i] += hot_list[j]
 
-        sorted_dict = sorted(new_dict.items(), key=lambda x: (-x[1], x[0]))
-        for key, value in sorted_dict:
-            if (key in word_list) and (value > 0):
-                print("{}: {}".format(key, value))
-    except Exception:
-        return None
+            for i in range(len(word_list)):
+                for j in range(i, len(word_list)):
+                    if (hot_list[j] > hot_list[i] or
+                            (word_list[i] > word_list[j] and
+                             hot_list[j] == hot_list[i])):
+                        a = hot_list[i]
+                        hot_list[i] = hot_list[j]
+                        hot_list[j] = a
+                        a = word_list[i]
+                        word_list[i] = word_list[j]
+                        word_list[j] = a
+
+            for i in range(len(word_list)):
+                if (hot_list[i] > 0) and i not in save:
+                    print("{}: {}".format(word_list[i].lower(), hot_list[i]))
+        else:
+            count_words(subreddit, word_list, after, hot_list)

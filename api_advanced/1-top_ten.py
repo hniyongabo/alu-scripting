@@ -1,23 +1,21 @@
 #!/usr/bin/python3
-"""get hot post function"""
-
-
-import json
+"""Module for top_ten function"""
 import requests
-import sys
 
 
 def top_ten(subreddit):
-    """get top ten hot post"""
-    if len(sys.argv) < 2:
-        return print(None)
+    """Query the Reddit API and print the titles of the top 10 posts."""
+    url = "https://www.reddit.com/r/{}/hot.json?limit=10".format(subreddit)
+    headers = {'User-Agent': 'My User Agent 1.0'}
+    response = requests.get(url, headers=headers)
+
+    if response.status_code == 200:
+        data = response.json().get('data').get('children')
+        for post in data:
+            print(post.get('data').get('title'))
     else:
-        url = "https://www.reddit.com/r/{}/hot.json?limit=10".format(subreddit)
-        headers = {"User-Agent": "Mozilla/5.0"}
-        result = requests.get(url, headers=headers, allow_redirects=False)
-        listing = []
-        if result.status_code != 200:
-            return print(None)
-        body = json.loads(result.text)
-        for i in body["data"]["children"]:
-            print(i["data"]["title"])
+        print(None)
+
+
+subreddit_name = "learnpython"  
+top_ten(subreddit_name)
