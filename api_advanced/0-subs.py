@@ -1,21 +1,40 @@
 #!/usr/bin/python3
-"""Module for number_of_subscribers function"""
+"""
+This module contains a function that gets the number of subscribers
+for a given subreddit using the Reddit API.
+"""
+
 import requests
 
 
 def number_of_subscribers(subreddit):
     """
-    Queries the Reddit API and returns the number of subscribers for a given subreddit.
-    Returns 0 if subreddit is invalid or if request fails.
+    Returns the number of subscribers of a given subreddit.
+    If the subreddit is invalid or request fails, returns 0.
+
+    Args:
+        subreddit (str): The name of the subreddit
+
+    Returns:
+        int: Number of subscribers
     """
-    url = f"https://www.reddit.com/r/{subreddit}/about.json"
-    headers = {'User-Agent': 'alu-scripting:v1.0 (by /u/yourusername)'}
-    
+    # URL to get info about a subreddit, in JSON format
+    url = "https://www.reddit.com/r/{}/about.json".format(subreddit)
+    # Set a custom User-Agent (Reddit recommends this)
+    headers = {"User-Agent": "MyRedditChecker/1.0 (by u/fakeusername)"}
+
     try:
+        # We make the request without allowing redirects (to avoid fake subs)
         response = requests.get(url, headers=headers, allow_redirects=False)
+        # Check if we got a valid response (status code 200)
         if response.status_code == 200:
-            return response.json().get('data', {}).get('subscribers', 0)
-        else:
-            return 0
-    except Exception:
+            # Parse the JSON and get the number of subscribers
+            data = response.json()
+            subscribers = data.get("data", {}).get("subscribers", 0)
+            return subscribers
+        # If we got a 404 or other error, return 0
+        return 0
+
+    except requests.RequestException:
+        # If the request totally fails (e.g., no internet), return 0
         return 0
